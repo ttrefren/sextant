@@ -11,11 +11,23 @@
     <div id="sextant_content" style="min-height: 200px; border: 1px solid black;"></div>
     
 </body>
-<script type="text/javascript" src="sextant.js"></script>
+<!-- <script type="text/javascript" src="sextant.js"></script>
 <script type="text/javascript">
     var nav = new Sextant(100);
 </script>
 <script type="text/javascript" src="views.js"></script>
-<script type="text/javascript" src="urls.js"></script>
+<script type="text/javascript" src="urls.js"></script> -->
+<script type="text/javascript">
+(function() {
+    console.log("running..")
+ var a = "/users/tim/code/";
+ var reg = new RegExp("^/users/([A-Za-z]+)/([A-Za-z]+)$");
+ console.log(reg);
+ console.log(reg.test(a));
+ var matches = reg.exec(a);
+ console.dir(matches);
+ console.log(typeof(matches));
+})();
+</script>
 
 </html>
