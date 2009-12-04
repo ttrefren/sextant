@@ -1,15 +1,33 @@
 function Sextant(interval) {
     if (!interval) { interval = 100 }
     this.urlpatterns = [];
-    this.DEBUG = true;
+    this.DEBUG = 1;
     this.run(interval)
 }
+
+Sextant.prototype.Debug = function(message) {
+    switch(this.DEBUG) {
+        case 0: // No debug statements
+            break;
+        case 1: // Firebug
+            if (message.constructor == String) {
+                console.log("SEXTANT_DEBUG: " + message);
+            } else {
+                console.log("SEXTANT_DEBUG:");
+                console.dir(message);
+            }
+            break;
+        case 2: //Alert
+            alert("SEXTANT_DEBUG" + message);
+        default:
+            alert("Invalid Sextant.DEBUG setting");
+    }
+};
 
 Sextant.prototype.UrlPatterns = function(patterns) {
     for (var i in patterns) {
         patterns[i][0] = new RegExp(patterns[i][0]);
     }
-    console.dir(patterns);
     this.urlpatterns = this.urlpatterns.concat(patterns);
 }
 
@@ -35,23 +53,21 @@ Sextant.prototype.UrlParser = function(hash) {
         }
     }
     if (split.length > 2 && this.DEBUG == true) {
-        alert("Too many ? in hash: " + hash);
+        alert("Too many '?' in hash url: " + hash);
     }
     return url;
 }
 
 Sextant.prototype.UrlHandler = function(hash) {
     
-    console.log(hash);
     var parsed = this.UrlParser(hash);
-    console.dir(parsed);
-    
-    console.dir(this.urlpatterns);
+    var found = false;
     for (var i in this.urlpatterns) {
         var p = this.urlpatterns[i];
         if (p[0].test(parsed.url)) {
             var matches = p[0].exec(parsed.url);
             p[1].display();
+            found = true;
             break;
         } else {
             console.log(hash + " is not a match.");
