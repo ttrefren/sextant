@@ -58,7 +58,9 @@ Sextant.prototype.Debug = function(message, object) {
 
 Sextant.prototype.UrlPatterns = function(patterns) {
     for (var i in patterns) {
-        patterns[i][0] = new RegExp(patterns[i][0]);
+        if (patterns[i][0].constructor == String) {
+            patterns[i][0] = new RegExp(patterns[i][0]);
+        }
     }
     this.urlpatterns = this.urlpatterns.concat(patterns);
 };
