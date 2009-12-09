@@ -1,5 +1,5 @@
 /*
-    Sextant Javascript navigation framework
+    Sextant, a Javascript navigation framework
     by Tim Trefren (tim@mixpanel.com)
 */
 
@@ -72,11 +72,13 @@ Sextant.prototype.UrlHandler = function(hash) {
         var i = 1;
         var m = [];
         console.log('match_parser')
-        that.Debug(matches, 'match_parser');
-        // while(matches !== null && matches[i] !== null) {
-        //     this.Debug()
-        //     m[m.length] = matches[i];
-        // }
+        that.Debug(matches);
+        
+        while(matches !== null && matches[i] !== undefined) {
+            m[m.length] = matches[i];
+            i++;
+        }
+        that.Debug(m);
         return m;
     }
     
@@ -139,11 +141,10 @@ Sextant.View.prototype.display = function(matches, url) {
     try {
         var container = document.getElementById(this.container);
         container.innerHTML = this.template;
-        this.callback();
-        //  get element by id this.container
-        // element.innerhtml = this.template
-        // run callback
+        console.log("display: matches")
+        console.dir(matches)
+        this.callback.apply(this, matches);
     } catch(err) {
-        console.log(err);
+        this.Debug(err);
     }
 };
