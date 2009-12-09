@@ -42,36 +42,36 @@ Sextant.prototype.UrlPatterns = function(patterns) {
     this.urlpatterns = this.urlpatterns.concat(patterns);
 };
 
-Sextant.prototype.UrlParser = function(hash) {
+Sextant.prototype.UrlParser = function(request, hash) {
 /*  Parse a hash URL into three parts.
     Ex: #/users/john/doe?name=eric&size=2
     
     url.base = '#/users/john/doe'
-    url.paramstring = 'name=eric&size=2'
     url.params = { 'name': 'eric', 'size': '2' }
     
     Possible support for a secondary hashstring in the future, 
     e.g. #/home/dev?k=v#a
 */
-    var url = new Sextant.URL();
     var split = hash.split("?");
     this.Debug("URL base, params after splitting", split);
-    url.base = split[0];
-    url.paramstring = split[1];
+    
+    var path = split[0];
+    var params = {};
     
     // Parse parameters (e.g k=v&a=b)
     if (split.length > 1) {
-        var params = split[1].split("&");
+        var s_params = split[1].split("&");
         var h = '';
-        for (var p in params) {
-            h = params[p].split("=");
-            url.params[h[0]] = h[1];
+        for (var p in s_params) {
+            h = s_params[p].split("=");
+            params[h[0]] = h[1];
         }
     }
     if (split.length > 2) {
         this.Debug("Too many '?' in hash url: " + hash);
     }
-    return url;
+    request.setURL(path, params);
+    return {}
 };
 
 Sextant.prototype.UrlHandler = function(hash) {
@@ -88,15 +88,16 @@ Sextant.prototype.UrlHandler = function(hash) {
         }
         return m;
     }
+    var request = new Sextant.Request();
     
-    var url = this.UrlParser(hash);
+    this.UrlParser(request, hash);
     var found = false;
     for (var i in this.urlpatterns) {
         var p = this.urlpatterns[i];
-        if (p[0].test(url.base)) {
+        if (p[0].test(request.path)) {
             found = p;
-            var matches = p[0].exec(url.base);
-            p[1].display(match_parser(matches), url);
+            var matches = p[0].exec(request.path);
+            p[1].display(request, match_parser(matches));
             break;
         } 
     }
@@ -120,18 +121,31 @@ Sextant.prototype.run = function(interval) {
 };
 
 
-Sextant.URL = function(base, params, paramstring) {
-    this.base = (base) ? base : '';
-    this.params = (params) ? params : [];
-    this.paramstring = (paramstring) ? paramstring : '';
+Sextant.Request = function(path, params) {
+    this.path = (path) ? path : '';
+    this.params = (params) ? params : {};
 };
 
-Sextant.URL.prototype.getFullURL = function() {
-    var url = this.base;
-    if (this.paramstring.length) {
-        url += "?" + this.paramstring;
+Sextant.Request.prototype.setURL = function(path, params) {
+    this.path = (path) ? path : '';
+    this.params = (params) ? params : {};
+};
+
+Sextant.Request.prototype.getQueryString = function() {
+    var p = [];
+    for (var key in this.params) {
+        p[p.length] = key + "=" + this.params[key];
+    }
+    return p.join('&');
+};
+
+Sextant.Request.prototype.getFullURL = function() {
+    var url = this.path;
+    if (this.params != {}) {
+        url += "?" + this.getQueryString;
     }
     return url;
+    console.log(url);
 };
 
 Sextant.View = function(template, callback, container) {
@@ -142,11 +156,11 @@ Sextant.View = function(template, callback, container) {
     this.template = template;
 };
 
-Sextant.View.prototype.display = function(matches, url) {
+Sextant.View.prototype.display = function(request, captured) {
     try {
         var container = document.getElementById(this.container);
         container.innerHTML = this.template;
-        this.callback.apply(this, matches);
+        this.callback.apply(this, [request].concat(captured));
     } catch(err) {
         this.Debug("View error:", err);
     }
