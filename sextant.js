@@ -3,6 +3,27 @@
     by Tim Trefren (tim@mixpanel.com)
 */
 
+// Function.prototype.method = function(name, func) { 
+// /*  A simple helper that allows you to bind new functions to the 
+//     prototype of an object
+// */
+//     this.prototype[name] = func; 
+//     return this; 
+// };
+// 
+// Function.method('swiss', function(parent) { 
+// /*  A function for inheriting only a couple functions from a parent object
+// */
+//     console.dir(parent);
+//     console.log(parent);
+//     for (var i = 1; i < arguments.length; i += 1) { 
+//         var name=arguments[i]; 
+//         console.log(name);
+//         console.log(parent.prototype[name])
+//         this.prototype[name]=parent.prototype[name]; 
+//     } 
+//     return this; 
+// });
 
 function Sextant(interval, debug, trace) {
     if (!interval) { interval = 100 }
@@ -142,10 +163,9 @@ Sextant.Request.prototype.getQueryString = function() {
 Sextant.Request.prototype.getFullURL = function() {
     var url = this.path;
     if (this.params != {}) {
-        url += "?" + this.getQueryString;
+        url += "?" + this.getQueryString();
     }
     return url;
-    console.log(url);
 };
 
 Sextant.View = function(template, callback, container) {
@@ -157,11 +177,11 @@ Sextant.View = function(template, callback, container) {
 };
 
 Sextant.View.prototype.display = function(request, captured) {
-    try {
-        var container = document.getElementById(this.container);
-        container.innerHTML = this.template;
-        this.callback.apply(this, [request].concat(captured));
-    } catch(err) {
-        this.Debug("View error:", err);
-    }
+    // try {
+    var container = document.getElementById(this.container);
+    container.innerHTML = this.template;
+    this.callback.apply(this, [request].concat(captured));
+    // } catch(err) {
+    //     this.Debug("View error:", err);
+    // }
 };

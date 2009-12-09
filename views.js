@@ -1,5 +1,3 @@
-console.log("In views");
-
 var views = {
     timshow: new Sextant.View(
         '<b>"hi there!!!!</b><div id="yo"></div>', 
