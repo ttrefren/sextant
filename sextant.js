@@ -4,28 +4,32 @@
 */
 
 
-function Sextant(interval, debug) {
+function Sextant(interval, debug, trace) {
     if (!interval) { interval = 100 }
     this.urlpatterns = [];
     this.DEBUG = (debug) ? debug : 0;
+    this.TRACE = (trace) ? trace : 0;
     this.run(interval)
 };
 
-Sextant.prototype.Debug = function(message) {
+Sextant.prototype.Debug = function(message, object) {
+    message = (message) ? message : '';
+    object = (object) ? object : {};
     switch(this.DEBUG) {
         case 0: // No debug statements
             break;
         case 1: // Firebug
-            console.log("SEXTANT_DEBUG:");
-            console.trace();
-            if (message.constructor == String) {
-                console.log(message);
+            if (this.TRACE) { console.trace(); }
+            console.log("SEXTANT DEBUG - " + message);
+            if (object.constructor == String) {
+                console.log(object);
             } else {
-                console.dir(message);
+                console.dir(object);
             }
             break;
         case 2: // Alert
-            alert("SEXTANT_DEBUG" + message);
+            // Will make this more robust if I need it.
+            alert("SEXTANT DEBUG: " + message);
         default:
             alert("Invalid Sextant.DEBUG setting");
     }
@@ -39,19 +43,23 @@ Sextant.prototype.UrlPatterns = function(patterns) {
 };
 
 Sextant.prototype.UrlParser = function(hash) {
-/*
-    Parse a hash URL into three parts.
+/*  Parse a hash URL into three parts.
     Ex: #/users/john/doe?name=eric&size=2
     
     url.base = '#/users/john/doe'
     url.paramstring = 'name=eric&size=2'
     url.params = { 'name': 'eric', 'size': '2' }
+    
+    Possible support for a secondary hashstring in the future, 
+    e.g. #/home/dev?k=v#a
 */
     var url = new Sextant.URL();
     var split = hash.split("?");
-    this.Debug(split);
+    this.Debug("URL base, params after splitting", split);
     url.base = split[0];
     url.paramstring = split[1];
+    
+    // Parse parameters (e.g k=v&a=b)
     if (split.length > 1) {
         var params = split[1].split("&");
         var h = '';
@@ -67,18 +75,17 @@ Sextant.prototype.UrlParser = function(hash) {
 };
 
 Sextant.prototype.UrlHandler = function(hash) {
-    var that = this;
+/*  Match hashstring against registered URLs.
+    If found, execute the view's display function.
+    
+    Passes captured arguments to the view.
+*/
     var match_parser = function(matches) {
-        var i = 1;
-        var m = [];
-        console.log('match_parser')
-        that.Debug(matches);
-        
-        while(matches !== null && matches[i] !== undefined) {
+        var i = 1, m = [];
+        while(matches[i] !== undefined) {
             m[m.length] = matches[i];
             i++;
         }
-        that.Debug(m);
         return m;
     }
     
@@ -87,17 +94,16 @@ Sextant.prototype.UrlHandler = function(hash) {
     for (var i in this.urlpatterns) {
         var p = this.urlpatterns[i];
         if (p[0].test(url.base)) {
-            this.Debug(hash + " is a match!");
+            found = p;
             var matches = p[0].exec(url.base);
             p[1].display(match_parser(matches), url);
-            found = true;
             break;
-        } else {
-            this.Debug(hash + " is not a match.");
-        }
+        } 
     }
-    if (!found) {
-        this.Debug("URL could not be found: " + hash);
+    if (found) {
+        this.Debug("URL matched following pattern:", p);
+    } else {
+        this.Debug("Matching URL could not be found for hash: " + hash);
     }
 };
 
@@ -137,14 +143,11 @@ Sextant.View = function(template, callback, container) {
 };
 
 Sextant.View.prototype.display = function(matches, url) {
-    console.log("In display");
     try {
         var container = document.getElementById(this.container);
         container.innerHTML = this.template;
-        console.log("display: matches")
-        console.dir(matches)
         this.callback.apply(this, matches);
     } catch(err) {
-        this.Debug(err);
+        this.Debug("View error:", err);
     }
 };
