@@ -3,7 +3,6 @@ var views = {
         '<b>"hi there!!!!</b><div id="yo"></div>', 
         function(request) {
             var d = document.getElementById("yo");
-            request.getFullURL()
             var text = "sup?<br/>";
             text += request.getFullURL();
             d.innerHTML = text;
@@ -20,7 +19,9 @@ var views = {
         '<b>"siasd!!!!</b><div id="yo"></div>', 
         function(request, num, letter) {
             var d = document.getElementById("yo");
-            d.innerHTML = "this is a test .. the second one";
+            text = "this is a test .. the second one";
+            text += num + letter;
+            d.innerHTML = text;
         }
     )
 };
@@ -30,3 +31,8 @@ view_related.timshow = {};
 view_related.timshow.blah = function() {
     
 }
+
+var html_loader = function() {
+    $.get()
+    
+};

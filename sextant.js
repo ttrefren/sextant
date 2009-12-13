@@ -66,11 +66,10 @@ Sextant.prototype.UrlPatterns = function(patterns) {
 };
 
 Sextant.prototype.UrlParser = function(request, hash) {
-/*  Parse a hash URL into three parts.
+/*  Parse a hash URL into a request object.
     Ex: #/users/john/doe?name=eric&size=2
-    
-    url.base = '#/users/john/doe'
-    url.params = { 'name': 'eric', 'size': '2' }
+    request.path = '#/users/john/doe'
+    request.params = { 'name': 'eric', 'size': '2' }
     
     Possible support for a secondary hashstring in the future, 
     e.g. #/home/dev?k=v#a
@@ -94,7 +93,6 @@ Sextant.prototype.UrlParser = function(request, hash) {
         this.Debug("Too many '?' in hash url: " + hash);
     }
     request.setURL(path, params);
-    return {}
 };
 
 Sextant.prototype.UrlHandler = function(hash) {
@@ -170,18 +168,17 @@ Sextant.Request.prototype.getFullURL = function() {
     return url;
 };
 
-Sextant.View = function(template, callback, container) {
-    // Default data container
+Sextant.View = function(template_loader, callback, container) {
     this.container = (container) ? container : 'sextant_content';
     this.callback = (callback.constructor == Function) ? callback : function() {};
     // Need to load template from URL.
-    this.template = template;
+    this.template_loader = template_loader;
 };
 
 Sextant.View.prototype.display = function(request, captured) {
     // try {
     var container = document.getElementById(this.container);
-    container.innerHTML = this.template;
+    container.innerHTML = this.template_loader(captured);
     this.callback.apply(this, [request].concat(captured));
     // } catch(err) {
     //     this.Debug("View error:", err);
