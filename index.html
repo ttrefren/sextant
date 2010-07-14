@@ -14,6 +14,53 @@
 <script type="text/javascript" src="sextant.js"></script>
 <script type="text/javascript">
     var nav = new Sextant(100, 1);
+    
+    var html_loader = function(request, first, second) {
+        // $.get()
+        if (!first) { first = 'NOARG';}
+        if (!second) { second = 'NOARG';}
+        return '<div><b>first:</b>' + first + '<p><b>second</b>: ' + second + '</p><div id="yo"></div>';
+    };
+
+    var views = {
+        timshow: new Sextant.View(
+            function(request) {
+                html_loader(arguments);
+                var d = document.getElementById("yo");
+                var text = "sup?<br/>";
+                text += request.getFullURL();
+                d.innerHTML = text;
+            }
+        ),
+        test1: new Sextant.View(
+            function(request) {
+                var d = document.getElementById("yo");
+                d.innerHTML = "this is a test";
+            }
+        ),
+        test2: new Sextant.View(
+            function(request, num, letter) {
+                var d = document.getElementById("yo");
+                text = "this is a test .. the second one";
+                text += num + letter;
+                d.innerHTML = text;
+            }
+        )
+    };
+
+    var view_related = {};
+    view_related.timshow = {};
+    view_related.timshow.blah = function() {
+
+    }
+    
+    nav.UrlPatterns([
+        ["#/tim/show", views.timshow],
+        [/#\/test1/, views.test1],
+        ["#/test2/(\\w{1,2})/(\\w{1})", views.test2],
+        // ["#/test\\d{1}/(\\w{1,2})", views.test1]
+    ]);
+    
 </script>
 <script type="text/javascript" src="views.js"></script>
 <script type="text/javascript" src="urls.js"></script>

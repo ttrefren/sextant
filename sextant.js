@@ -3,66 +3,81 @@
     by Tim Trefren (tim@mixpanel.com)
 */
 
-// Function.prototype.method = function(name, func) { 
-// /*  A simple helper that allows you to bind new functions to the 
-//     prototype of an object
-// */
-//     this.prototype[name] = func; 
-//     return this; 
-// };
-// 
-// Function.method('swiss', function(parent) { 
-// /*  A function for inheriting only a couple functions from a parent object
-// */
-//     console.dir(parent);
-//     console.log(parent);
-//     for (var i = 1; i < arguments.length; i += 1) { 
-//         var name=arguments[i]; 
-//         console.log(name);
-//         console.log(parent.prototype[name])
-//         this.prototype[name]=parent.prototype[name]; 
-//     } 
-//     return this; 
-// });
-
-function Sextant(interval, debug, trace) {
-    if (!interval) { interval = 100 }
+function Sextant(debug, trace) {
     this.urlpatterns = [];
-    this.DEBUG = (debug) ? debug : 0;
-    this.TRACE = (trace) ? trace : 0;
-    this.run(interval)
-};
+    this.DEBUG = debug || 0;
+    this.TRACE = trace || 0;
+}
 
 Sextant.prototype.Debug = function(message, object) {
-    message = (message) ? message : '';
-    object = (object) ? object : {};
     switch(this.DEBUG) {
         case 0: // No debug statements
             break;
         case 1: // Firebug
             if (this.TRACE) { console.trace(); }
             console.log("SEXTANT DEBUG - " + message);
-            if (object.constructor == String) {
-                console.log(object);
-            } else {
-                console.dir(object);
+            if (object) {
+                if (object.constructor == String) {
+                    console.log(object);
+                } else {
+                    console.dir(object);
+                }
             }
-            break;
+                break;
+                
         case 2: // Alert
             // Will make this more robust if I need it.
             alert("SEXTANT DEBUG: " + message);
+            break;
         default:
             alert("Invalid Sextant.DEBUG setting");
     }
 };
 
 Sextant.prototype.UrlPatterns = function(patterns) {
+    // Compile regexes
     for (var i in patterns) {
-        if (patterns[i][0].constructor == String) {
+        if (patterns.hasOwnProperty(i) && patterns[i][0].constructor == String) {
             patterns[i][0] = new RegExp(patterns[i][0]);
         }
     }
     this.urlpatterns = this.urlpatterns.concat(patterns);
+};
+
+Sextant.prototype.get_hash = function() {
+    /*  Parse the hash.
+        Have to use location.href, because location.hash 
+        automatically unescapes itself.  This screws up our 
+        URI encoding scheme.
+    */
+	var href = document.location.href;
+	href = href.split('#');
+	href.shift(); // remove first part
+	var hash = href.join('#');
+	if (hash.length) {
+		hash = '#' + hash;
+	}
+	return hash;
+};
+
+Sextant.prototype.setURL = function(request) {
+    document.location.hash = request.getFullURL();
+};
+
+Sextant.prototype.updateURL = function(path, params) {
+    // Update a URL using a path, and merging in a set of params with the current ones
+    var request = this.getURLRequest();
+    request.path = path;
+    request.params = $.extend(request.params, params);
+
+    this.setURL(request);
+};
+
+Sextant.prototype.getURLRequest = function() {
+    // Generate a request object based on the current hash
+    var request = new Sextant.Request();
+    request = this.UrlParser(request, this.get_hash());
+    return request;
 };
 
 Sextant.prototype.UrlParser = function(request, hash) {
@@ -75,24 +90,34 @@ Sextant.prototype.UrlParser = function(request, hash) {
     e.g. #/home/dev?k=v#a
 */
     var split = hash.split("?");
-    this.Debug("URL base, params after splitting", split);
+    var path = split.shift();
+    split = split.join('?');
     
-    var path = split[0];
-    var params = {};
-    
+    var params = {};    
     // Parse parameters (e.g k=v&a=b)
-    if (split.length > 1) {
-        var s_params = split[1].split("&");
+    if (split.length) {
+        var s_params = split.split("&");
         var h = '';
         for (var p in s_params) {
-            h = s_params[p].split("=");
-            params[h[0]] = h[1];
+            if (s_params.hasOwnProperty(p)) {
+                h = s_params[p].split("=");
+                // Check if key ends with []; if so it's an array
+                if (/\[\]$/.test(h[0])) {
+                    h[0] = h[0].replace('[]', '');
+                    if (!params[h[0]]) {
+                        params[h[0]] = [];
+                    }
+                    params[h[0]].push(decodeURIComponent(h[1]));
+
+                } else {
+                    params[h[0]] = decodeURIComponent(h[1]);
+                }
+            }
         }
     }
-    if (split.length > 2) {
-        this.Debug("Too many '?' in hash url: " + hash);
-    }
-    request.setURL(path, params);
+
+    request.setURL(path, params);    
+    return request;
 };
 
 Sextant.prototype.UrlHandler = function(hash) {
@@ -108,37 +133,66 @@ Sextant.prototype.UrlHandler = function(hash) {
             i++;
         }
         return m;
-    }
+    };
+    
     var request = new Sextant.Request();
     
-    this.UrlParser(request, hash);
+    request = this.UrlParser(request, hash);
     var found = false;
     for (var i in this.urlpatterns) {
-        var p = this.urlpatterns[i];
-        if (p[0].test(request.path)) {
-            found = p;
-            var matches = p[0].exec(request.path);
-            p[1].display(request, match_parser(matches));
-            break;
-        } 
+        if (this.urlpatterns.hasOwnProperty(i)) {
+            var p = this.urlpatterns[i];
+            if (p[0].test(request.path)) {
+                found = p;
+                var matches = p[0].exec(request.path);
+                p[1].display(request, match_parser(matches));
+                break;
+            }
+        }
     }
     if (found) {
-        this.Debug("URL matched following pattern:", p);
+        this.Debug("URL matched following pattern:", found);
     } else {
         this.Debug("Matching URL could not be found for hash: " + hash);
     }
 };
 
 Sextant.prototype.run = function(interval) {
-    var last = '';
-    var that = this;
+    interval = interval || 100;
+    var last = '',
+        hash = '',
+        that = this;
+        
     function poll() {
-        if (last !== document.location.hash) {
-            last = document.location.hash;
+		hash = that.get_hash();
+        if (last !== hash) {
+            last = hash;
             that.UrlHandler(last);
         }
     }
-    setInterval(function() { poll() } , interval);
+    
+    function start() {
+        that.runner = setInterval(function() { poll(); }, interval);
+    }
+    
+    function stop() {
+        clearInterval(that.runner);
+        that.runner = null;
+    }
+
+    window.onblur = function() { 
+        that.Debug("Stopping hash listener: page lost focus");
+        stop(); 
+    };
+    
+    window.onfocus = function() { 
+        if (!that.runner) {
+            that.Debug("Starting hash listener: page regained focus");
+            start();
+        }
+    };
+    
+    start();
 };
 
 
@@ -155,7 +209,15 @@ Sextant.Request.prototype.setURL = function(path, params) {
 Sextant.Request.prototype.getQueryString = function() {
     var p = [];
     for (var key in this.params) {
-        p[p.length] = key + "=" + this.params[key];
+        if (this.params.hasOwnProperty(key)) {
+            if (this.params[key].constructor == Array) {
+                for (var i=0; i < this.params[key].length; i++) {
+                    p[p.length] = key + "[]=" + encodeURIComponent(this.params[key][i]);
+                }
+            } else {
+                p[p.length] = key + "=" + encodeURIComponent(this.params[key]);                
+            }
+        }
     }
     return p.join('&');
 };
@@ -168,19 +230,14 @@ Sextant.Request.prototype.getFullURL = function() {
     return url;
 };
 
-Sextant.View = function(template_loader, callback, container) {
-    this.container = (container) ? container : 'sextant_content';
-    this.callback = (callback.constructor == Function) ? callback : function() {};
-    // Need to load template from URL.
-    this.template_loader = template_loader;
+Sextant.View = function(callback, container) {
+    this.container = container || 'sextant_container';
+    this.callback = callback || function() {};
 };
 
 Sextant.View.prototype.display = function(request, captured) {
-    // try {
-    var container = document.getElementById(this.container);
-    container.innerHTML = this.template_loader(captured);
-    this.callback.apply(this, [request].concat(captured));
-    // } catch(err) {
-    //     this.Debug("View error:", err);
-    // }
+    var args = [request].concat(captured);
+    // Don't want to pass args by reference
+    this.callback.apply(this, args.slice(0));
 };
+
